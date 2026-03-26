@@ -2,6 +2,8 @@
 
 > ** Asset Extraction & Normalization**
 
+![Alt text](images/asset-parser-sample.png)
+
 The **Cortex Cloud Asset Parser** is a high-performance, stream-oriented Bash utility designed to ingest, parse, and normalize container asset vectors extracted from Vulnerability Management platforms. It intelligently parses complex, array-based image registry strings into highly structured data columns without exhausting system memory.
 
 ---
