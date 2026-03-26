@@ -1,10 +1,13 @@
 # ⚙️ Cortex Cloud Asset Parser (v0.1)
 
-> ** Asset Extraction & Normalization**
+> **Container Asset Extraction & Normalization**
+
+The **Cortex Cloud Asset Parser** is a high-performance, stream-oriented Bash utility designed to parse, and normalize Asset Name Column values extracted from Cortex cloud exported TSV files. It intelligently parses complex, array-based image registry strings into highly structured data columns without exhausting system memory.
+
+## 📸 Visual Preview
 
 ![Alt text](images/asset-parser-sample.png)
-
-The **Cortex Cloud Asset Parser** is a high-performance, stream-oriented Bash utility designed to ingest, parse, and normalize container asset vectors extracted from Vulnerability Management platforms. It intelligently parses complex, array-based image registry strings into highly structured data columns without exhausting system memory.
+*Cortex Cloud Asset Parser interactive execution and progress telemetry.*
 
 ---
 
@@ -34,9 +37,17 @@ This script requires a Bash environment. You **cannot** run this natively in `cm
 
 ---
 
-## 🛠️ Installation
+## 💻 Execution & Usage
 
-1. Download or clone the script to your local workspace.
-2. Grant execution permissions:
-   ```bash
-   chmod +x cortex-parser.sh
+### Step 1: Grant Execution Permissions
+Before running the script for the first time, you must make it executable. Open your terminal and run:
+```bash
+chmod +x cortex-parser.sh
+```
+
+### Step 2: Run the Tool (Interactive Mode)
+Pass your exported TSV file to the script as an argument. The interactive wizard will launch and prompt you for output preferences:
+
+```Bash
+./cortex-parser.sh CLOUD_Vulnerability_Issues_2026-03-16T13_22_53.tsv
+```
