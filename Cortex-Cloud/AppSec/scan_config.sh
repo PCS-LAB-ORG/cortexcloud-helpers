@@ -49,7 +49,7 @@ print_intro() {
     echo ""
 
     echo -e "${C_GREEN}╭────────────────────────────────────────────────────────────────────────╮${NC}"
-    echo -e "${C_GREEN}│${NC}  ${BOLD}Operation: AppSec Repository Scan Configurations${NC}            ${C_GREEN}│${NC}"
+    echo -e "${C_GREEN}│${NC}  ${BOLD}Operation: AppSec Repository Scan Configurations${NC}               ${C_GREEN}│${NC}"
     echo -e "${C_GREEN}╰────────────────────────────────────────────────────────────────────────╯${NC}\n"
 
     echo -e "${BOLD}Cortex Cloud Platform APIs${NC}"
@@ -73,7 +73,7 @@ ask_prompt() {
         read -r "$var_name"
     fi
     echo -e "${DIM}╰────────────────────────────────────────────────────────────────────────╯${NC}"
-    echo -e "${DIM}~/AppSec/Workspace             cortex-exec (api-patch)             v2.1.1${NC}\n"
+    echo -e "${DIM}~/AppSec/Workspace             cortex-exec (api-patch)             v2.2.0${NC}\n"
 }
 
 log_info()    { echo -e "${C_GREEN}>${NC} ${1}" >&2; }
@@ -177,6 +177,28 @@ API_BASE_URL="https://${CORTEX_FQDN}/public_api/appsec/v1"
 ask_prompt "Output Report Format?" "[json/csv, default: json]" val "false"
 if [[ "$val" =~ ^[Cc][Ss][Vv]$ ]]; then REPORT_FORMAT="csv"; else REPORT_FORMAT="json"; fi
 
+echo -e "${BOLD}Repository Source Platform${NC}"
+echo -e "  [1] ${C_GREEN}GITHUB${NC} (Default)"
+echo -e "  [2] GITHUB_ENTERPRISE"
+echo -e "  [3] GITLAB"
+echo -e "  [4] GITLAB_SELF_MANAGED"
+echo -e "  [5] BITBUCKET"
+echo -e "  [6] BITBUCKET_DATACENTER"
+echo -e "  [7] AZURE_REPOS"
+echo -e "  [8] AWS_CODE_COMMIT"
+ask_prompt "Select target source" "[1-8, default: 1]" SOURCE_SEL "false"
+
+case "$SOURCE_SEL" in
+    2) REPO_SOURCE="GITHUB_ENTERPRISE" ;;
+    3) REPO_SOURCE="GITLAB" ;;
+    4) REPO_SOURCE="GITLAB_SELF_MANAGED" ;;
+    5) REPO_SOURCE="BITBUCKET" ;;
+    6) REPO_SOURCE="BITBUCKET_DATACENTER" ;;
+    7) REPO_SOURCE="AZURE_REPOS" ;;
+    8) REPO_SOURCE="AWS_CODE_COMMIT" ;;
+    *) REPO_SOURCE="GITHUB" ;;
+esac
+
 echo -e "${BOLD}Granular Configuration Settings${NC}"
 echo -e "${DIM}Select action for each feature: [e]nable, [d]isable, or [s]kip (leave current setting as-is).${NC}"
 
@@ -187,7 +209,6 @@ ask_prompt "Deep Git History Scan?" "[e/d/S]" ACT_GIT "false"
 ask_prompt "Pipeline PR Scanning?" "[e/d/S]" ACT_PR "false"
 
 # Build the dynamic jq filter string based on user inputs
-# FIX 2.1.1: Start by actively stripping 'validateSecrets' because the API returns it but rejects it on PUT
 JQ_PATCH=". | del(.scanners.SECRETS.scanOptions.validateSecrets?)"
 
 [[ "$ACT_IAC" =~ ^[Ee]$ ]] && JQ_PATCH+=" | .scanners.IAC.isEnabled = true"
@@ -228,9 +249,10 @@ fi
 # ==========================================
 # Phase 4: Fetch & Pattern Targeting
 # ==========================================
-animate_wait 2 "Fetching repository list from Cortex Cloud..."
+animate_wait 2 "Fetching ${REPO_SOURCE} repository list from Cortex Cloud..."
 
-FETCH_RESP=$(execute_with_retry "${API_BASE_URL}/repositories?source=GITHUB" "GET" "")
+# Using the dynamically selected REPO_SOURCE variable
+FETCH_RESP=$(execute_with_retry "${API_BASE_URL}/repositories?source=${REPO_SOURCE}" "GET" "")
 FETCH_STATUS=$(echo "$FETCH_RESP" | tail -n 1)
 FETCH_BODY=$(echo "$FETCH_RESP" | sed '$ d')
 
@@ -275,6 +297,7 @@ TOTAL_PENDING=${#PENDING_IDS[@]}
 
 echo -e "\n${BOLD}Targeting Plan Overview${NC}"
 echo -e "${DIM}────────────────────────────────────────────────────────────────────────${NC}"
+echo -e "Target Source        : ${C_GREEN}${REPO_SOURCE}${NC}"
 echo -e "Total Repos in Cloud : ${DIM}$TOTAL_FETCHED${NC}"
 echo -e "Matched by Filter    : ${C_GREEN}$TOTAL_TARGETED${NC}"
 echo -e "Already Processed    : ${S_GREEN}${#PROCESSED_IDS[@]}${NC}"
@@ -350,7 +373,7 @@ done
 # ==========================================
 # Phase 6: Final Reporting
 # ==========================================
-REPORT_FILE="cortex_appsec_audit_$(date +%F_%H-%M-%S).$REPORT_FORMAT"
+REPORT_FILE="cortex_appsec_audit_${REPO_SOURCE}_$(date +%F_%H-%M-%S).$REPORT_FORMAT"
 
 if [[ "$REPORT_FORMAT" == "json" ]]; then
     jq -R -n -c '
@@ -367,6 +390,7 @@ rm -f "$TMP_RESULTS_FILE"
 
 echo -e "\n${BOLD}Execution Audit Log${NC}"
 echo -e "${DIM}────────────────────────────────────────────────────────────────────────${NC}"
+printf "Target Source  : %-45s\n" "${C_GREEN}${REPO_SOURCE}${NC}"
 printf "Targeted Repos : %-45s\n" "${BOLD}$TOTAL_TARGETED${NC}"
 printf "Successful     : ${C_GREEN}%-45s${NC}\n" "$SUCCESS_COUNT"
 printf "Failed         : ${RED}%-45s${NC}\n" "$FAIL_COUNT"
